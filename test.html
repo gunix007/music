@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottie Animation with Music Spectrum</title>
+    <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.9.2/build/player/lottie.min.js"></script>
+</head>
+<body>
+
+<div id="animation-container" style="width: 100%; height: 100vh;"></div>
+
+<script>
+    // 加载 Lottie 动画
+    var animation = lottie.loadAnimation({
+      container: document.getElementById('animation-container'),
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: 'https://assets8.lottiefiles.com/packages/lf20_sxv1f32k.json'  // 这里用一个示例动画路径，可以替换为你自己的 JSON 文件路径
+    });
+
+    console.log(animation);  // 输出动画对象，确保它被成功创建
+
+    // 使用 Web Audio API 获取麦克风输入
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function(stream) {
+        var audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        var analyser = audioContext.createAnalyser();
+        var microphone = audioContext.createMediaStreamSource(stream);
+        microphone.connect(analyser);
+        analyser.fftSize = 256; // 设置 FFT 大小
+        var bufferLength = analyser.frequencyBinCount;
+        var dataArray = new Uint8Array(bufferLength);
+
+        // 更新动画，基于音频频谱数据
+        function updateAnimation() {
+          analyser.getByteFrequencyData(dataArray); // 获取音频频谱数据
+
+          // 计算频谱的平均值或其他统计数据
+          var average = dataArray.reduce((a, b) => a + b, 0) / bufferLength;
+
+          // 基于音频频谱数据更新 Lottie 动画
+          var scale = 1 + average / 100;  // 基于频谱强度控制缩放
+          animation.setSpeed(scale);  // 修改动画速度
+
+          // 用于调试：打印平均值，以查看动画如何与音频数据相互作用
+          console.log('Average Spectrum Value:', average);
+
+          requestAnimationFrame(updateAnimation);  // 继续更新
+        }
+
+        updateAnimation();  // 启动动画更新循环
+      })
+      .catch(function(err) {
+        console.log('Error: ' + err);
+      });
+  </script>
+
+</body>
+</html>
